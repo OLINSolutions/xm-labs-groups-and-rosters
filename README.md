@@ -1,95 +1,89 @@
-# Instructions on creating the repo
-This file is divided up into two parts, the first is instructions on creating the repo and cloning the template, the second part is the template for the `README.md` file that will serve as the home page and installation instructions for the integration. 
-
-Some examples to emulate:
-* [Logz.io](https://github.com/xmatters/xm-labs-logz.io-elk)
-* [StatusPage](https://github.com/xmatters/xm-labs-statuspage)
-
-## 1. Create the repo
-[Create the repo](https://help.github.com/articles/create-a-repo/) using your own GitHub account. Please prefix the name of the repo with `xm-labs-` and all in lower case. When you create the repo don't add a README or LICENSE; this will make sure to initialize an empty repo. 
-
-## 2. Clone the template
-*Note*: These instructions use git in the terminal. The GitHub desktop client is rather limited and likely won't save you any headaches. 
-
-Open a command line and do the following. Where `MY_NEW_REPO_NAME_HERE` is the name of your GitHub repo and `MY_NEW_REPO_URL` is the url generated when you create the new repo. 
-
-```bash
-# Clone the template repo to the local file system. 
-git clone https://github.com/xmatters/xm-labs-template.git
-# Change the directory name to avoid confusion, then cd into it
-mv xm-labs-template MY_NEW_REPO_NAME_HERE
-cd MY_NEW_REPO_NAME_HERE
-# Remove the template git history
-rm -Rf .git/
-# Initialize the new git repo
-git init
-# Point this repo to the one on GitHub
-git remote add origin https://github.com/MY_NEW_REPO_URL.git
-# Add all files in the current directory and commit to staging
-git add .
-git commit -m "initial commit"
-# Push to cloud!
-git push origin master
-```
-
-## 3. Make updates
-Then, make the updates to the `README.md` file and add any other files necessary. `README.md` files are written in GitHub-flavored markdown, see [here](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) for a quick reference. 
-
-
-## 4. Push to GitHub
-Periodically, you will want to do a `git commit` to stash the changes locally. Then, when you are ready or need to step away, do a `git push origin master` to push the local changes to github.com. 
-
-## 5. Request to add to xM Labs
-Once you are all finished, let Travis know and he will then fork it to the xMatters account and update the necessary links in the xM Labs main page. From there if you update your repo, those changes can be merged into the xMatters account repo and everything will be kept up to date!
-
-# Template below:
----
-
-# Product Name Goes Here
-A note about what the product is and what this integration/scriptlet is all about. Check out the sweet video [here](media/mysweetvideo.mov). Be sure to indicate what type of integration or enhancement you're building! (One-way or closed-loop integration? Script library? Feature update? Enhancement to an existing integration?)
+# Group and Roster Generator
+This is a simple [Pentaho PDI (Kettle)](http://community.pentaho.com/projects/data-integration/) Job and transformation that takes an xMatters Group Export file and generates a .csv file of containing one line for each xMatters Group with the Group Name in the first column, with the list of members across all shifts (roster) in the second column.
+One point of note is that the xMatters Group Export only contains shifts that contain members.  So, if you have a Group with 1000 members, but none of them are in a shift, it will come out as an "Empty group".
 
 # Pre-Requisites
-* Version 453 of App XYZ
-* Account in Application ABC
-* xMatters account - If you don't have one, [get one](https://www.xmatters.com)!
+* [Pentaho Data Integration, v7.x+](http://community.pentaho.com/projects/data-integration/)
+* An xMatters Group Export in the local file system
 
 # Files
-* [ExampleCommPlan.zip](ExampleCommPlan.zip) - This is an example comm plan to help get started. (If it doesn't make sense to have a full communication plan, then you can just use a couple javascript files like the one below.)
-* [EmailMessageTemplate.html](EmailMessageTemplate.html) - This is an example HTML template for emails and push messages. 
-* [FileA.js](FileA.js) - An example javascript file to be pasted into a Shared Library in the Integration builder. Note the comments
+* [GroupAndRoster.kjb](GroupAndRoster.kjb) - The Kettle Job that starts the process.  Takes one named argument `grpfname` that should point to the Group Export file.
+* [GroupAndRoster.ktr](GroupAndRoster.ktr) - The Kettle Transformation that is called by GroupAndRoster.kjb that reads the export file and generates the resulting output report.
 
 # How it works
-Add some info here detailing the overall architecture and how the integration works. The more information you can add, the more helpful this sections becomes. For example: An action happens in Application XYZ which triggers the thingamajig to fire a REST API call to the xMatters inbound integration on the imported communication plan. The integration script then parses out the payload and builds an event and passes that to xMatters. 
+The Kettle Job does some preliminary checking to make sure that the file exists. 
+After that, the Transformation is called which reads in and parses, sorts, and deduplicates the Export file.
+It then uses a Group By step to combine the members across all shifts into a single quote enclosed, comma separated list of members.
+It then writes the output into the same directory as the input, with the same name, except that the extension becomes `.rpt.csv`.
 
 # Installation
-Details of the installation go here. 
+Download and install Pentaho.  Use the links above, and the full documentation is [here](http://wiki.pentaho.com/display/EAI/Latest+Pentaho+Data+Integration+%28aka+Kettle%29+Documentation).
+Once Pentaho is installed, put the .kjb and .ktr files into the `data-integration` folder (where PDI was installed).
 
-## Application ABC set up
-Any specific steps for setting up the target application? The more precise you can be, the better!
-
-Images are encouraged. Adding them is as easy as:
-```
-<kbd>
-  <img src="media/cat-tax.png" width="200" height="400">
-</kbd>
-```
-
-<kbd>
-  <img src="media/cat-tax.png" width="200" height="400">
-</kbd>
-
-
-## xMatters set up
-1. Steps to create a new Shared Library or (in|out)bound integration or point them to the xMatters online help to cover specific steps; i.e., import a communication plan (link: http://help.xmatters.com/OnDemand/xmodwelcome/communicationplanbuilder/exportcommplan.htm)
-2. Add this code to some place on what page:
+## Usage
+1. Generate an Group Export from your xMatters instance (instructions are [here](http://help.xmatters.com/OnDemand/groups/groups-create-delete-export.htm))
+2. Note where you put the Group Export file.
+3. Go to the Pentaho `data-integration` folder.
+4. Depending on whether you are using Windows, or a Linux/Unix derivative, you will need to run kitchen.bat or kitchen.sh respectively.
    ```
-   var items = [];
-   items.push( { "stuff": "value"} );
-   console.log( 'Do stuff' );
+   cd /Pentaho/data-integration
+   # Example: kitchen.sh GroupAndRoster.kjb -param:grpfname="<full path to yoru group export file>"
+   ./kitchen.sh -file=GroupsAndRoster.kjb -param:grpfname="Group Export 20170705133635.csv"
    ```
-   
+
 # Testing
-Be specific. What should happen to make sure this code works? What would a user expect to see? 
+Testing is simple, just run the command as above.
+If the process starts, you will see output that will look something like this...
+   ```
+2017/07/05 23:25:16 - GroupsAndRoster - Start of job execution
+2017/07/05 23:25:16 - GroupsAndRoster - Starting entry [grpfname exists]
+2017/07/05 23:25:16 - GroupsAndRoster - Starting entry [Log filename found]
+2017/07/05 23:25:16 - grpfname exists - The Group Export Filename was found: Group Export 20170705133635.csv
+2017/07/05 23:25:16 - GroupsAndRoster - Starting entry [Create Report]
+2017/07/05 23:25:16 - Create Report - Loading transformation from XML file [file:///xMatters/OOTB20170523/Pentaho/data-integration/GroupsAndRoster.ktr]
+2017/07/05 23:25:16 - Create Report - Using run configuration [Pentaho local]
+2017/07/05 23:25:16 - Create Report - Using legacy execution engine
+2017/07/05 23:25:16 - GroupsAndRoster - Dispatching started for transformation [GroupsAndRoster]
+2017/07/05 23:25:16 - Get filename.0 - Finished processing (I=0, O=0, R=1, W=2, U=0, E=0)
+2017/07/05 23:25:16 - Log grpfname.0 - 
+2017/07/05 23:25:16 - Log grpfname.0 - ------------> Linenr 1------------------------------
+2017/07/05 23:25:16 - Log grpfname.0 - Enterred transformation
+2017/07/05 23:25:16 - Log grpfname.0 - 
+2017/07/05 23:25:16 - Log grpfname.0 - grpfname = Group Export 20170705133635.csv
+2017/07/05 23:25:16 - Log grpfname.0 - 
+2017/07/05 23:25:16 - Log grpfname.0 - ====================
+2017/07/05 23:25:16 - Log grpfname.0 - Finished processing (I=0, O=0, R=1, W=1, U=0, E=0)
+2017/07/05 23:25:16 - Read Group Export.0 - Opening file: file:///xMatters/OOTB20170523/Pentaho/data-integration/Group Export 20170705133635.csv
+Jul 05, 2017 11:25:18 PM org.apache.cxf.endpoint.ServerImpl initDestination
+INFO: Setting the server's publish address to be /marketplace
+Jul 05, 2017 11:25:18 PM org.apache.cxf.endpoint.ServerImpl initDestination
+INFO: Setting the server's publish address to be /lineage
+Jul 05, 2017 11:25:18 PM org.apache.cxf.endpoint.ServerImpl initDestination
+INFO: Setting the server's publish address to be /i18n
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/xMatters/OOTB20170523/Pentaho/data-integration/launcher/../lib/slf4j-log4j12-1.7.7.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/xMatters/OOTB20170523/Pentaho/data-integration/plugins/pentaho-big-data-plugin/lib/slf4j-log4j12-1.7.7.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+2017/07/05 23:25:19 - Read Group Export.0 - Finished processing (I=5865, O=0, R=1, W=5864, U=1, E=0)
+2017/07/05 23:25:19 - Split Filename.0 - Finished processing (I=0, O=0, R=5864, W=5864, U=0, E=0)
+2017/07/05 23:25:19 - Sort group members.0 - Finished processing (I=0, O=0, R=5864, W=4306, U=0, E=0)
+2017/07/05 23:25:19 - Group by.0 - Finished processing (I=0, O=0, R=4306, W=1959, U=0, E=0)
+2017/07/05 23:25:19 - Roster output.0 - Finished processing (I=0, O=1960, R=1959, W=1959, U=0, E=0)
+2017/07/05 23:25:19 - GroupsAndRoster - Starting entry [Success]
+2017/07/05 23:25:19 - GroupsAndRoster - Finished job entry [Success] (result=[true])
+2017/07/05 23:25:19 - GroupsAndRoster - Finished job entry [Create Report] (result=[true])
+2017/07/05 23:25:19 - GroupsAndRoster - Finished job entry [Log filename found] (result=[true])
+2017/07/05 23:25:19 - GroupsAndRoster - Finished job entry [grpfname exists] (result=[true])
+2017/07/05 23:25:19 - GroupsAndRoster - Job execution finished
+2017/07/05 23:25:19 - Kitchen - Finished!
+2017/07/05 23:25:19 - Kitchen - Start=2017/07/05 23:25:06.608, Stop=2017/07/05 23:25:19.451
+2017/07/05 23:25:19 - Kitchen - Processing ended after 12 seconds.
+   ```
 
 # Troubleshooting
-Optional section for how to troubleshoot. Especially anything in the source application that an xMatters developer might not know about, or specific areas in xMatters to look for details - like the Activity Stream? 
+The easiest way to troubleshoot Pentaho projects is to bring up the Pentaho development environment, or Spoon.
+To do that, in the `data-integration` directory, run `SpoonConsole.bat` or in linux `export SPOON_CONSOLE=1;spoon.sh`.
+Once the IDE starts up, just use the File Open command to bring in the GroupAndRoster.kjb file, then hit the Run command.
+
+Ask questions here if you get stuck.
